@@ -60,8 +60,7 @@ class HepsiburadaCrawlSpider(scrapy.Spider):
     # count ,next_page 
     count = 1
 
-    # ürün sayısı
-    count_urun = 0
+    # comment count
     comment_count = 0
 
     # constructer init, categorys read
@@ -163,22 +162,19 @@ class HepsiburadaCrawlSpider(scrapy.Spider):
                 }
                 comment_items.append(items)
 
-            ######################################333
-            #fill_star_count = 0
-            #count =0
-            #rating_stars = response.xpath("//*[@class='hermes-RatingPointer-module-1OKF3']")
-            #for stars in rating_stars:
-            #    for star in stars.xpath(".//svg/path/@fill").extract():
-            #        if star == "#f28b00":
-            #            fill_star_count +=1
-            #        count +=1
-            #    if comment_items[count].values() == "star":
-            #        comment_items[count].keys() = fill_star_count
-            #
-            #    print(fill_star_count)
-            #    fill_star_count = 0
-            #        
-            #########################################
+                #######################################333
+                #fill_star_count = 0
+                #count =0
+                #rating_stars = response.xpath("//*[@class='hermes-RatingPointer-module-1OKF3']")
+                #for stars in rating_stars:
+                #    for star in stars.xpath(".//svg/path/@fill").extract():
+                #        if star == "#f28b00":
+                #            fill_star_count +=1
+                #        count +=1
+                #    print(fill_star_count)
+                #    fill_star_count = 0
+                #        
+                ##########################################
         items = dict()
         items['category'] = urun_kategorisi
         items['title'] = title
