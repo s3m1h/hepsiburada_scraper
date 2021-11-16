@@ -23,7 +23,7 @@ class Kategoriler(scrapy.Spider):
         categories.append(response.xpath("//*[@class='categories left-absolute-1']"))
         categories.append(response.xpath("//*[@class='categories left-absolute-2']"))
         categories.append(response.xpath("//*[@class='categories left-absolute-3']"))
-        liste = []
+        liste = list()
         for category in categories:
             groups = category.xpath(".//*[@class='group']")
             items = dict()
@@ -41,24 +41,30 @@ class Kategoriler(scrapy.Spider):
                     items[ctgry] = data
             liste.append(items)
         self.save_file(liste,"tum-kategoriler")
+        
 class HepsiburadaCrawlSpider(scrapy.Spider):
     name = 'hepsiburada_crawl'
     allowed_domains = ['hepsiburada.com']
+    
     user_agent = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36 Edg/95.0.1020.38'
     }
-    # custom_settings = {
-    #     "FEED":"json",
-    #     "FEED_URI":"urunler.json"
-    # }
+    custom_settings = {
+        "FEED":"json",
+        "FEED_URI":"urunler.json"
+        #"DOWNLOAD_TIMEOUT":0.25 # 250 ms of delay
+    }
     # kategori linkleri
-    linkler = []
+    linkler = list()
     
     # count ,next_page 
     count = 1
 
     # ürün sayısı
     count_urun = 0
+    comment_count = 0
+
+    # constructer init, categorys read
     def __init__(self):
         #hepsiburada_tumkategoriler.json dosyasını okuma ve içerisindeki linkleri linkler listesine ekleme
         with open('hepsiburada_tumkategoriler.json',encoding='utf-8') as file:
@@ -72,6 +78,7 @@ class HepsiburadaCrawlSpider(scrapy.Spider):
         #linkler listesindeki her bir linke request yapmak
         for link in self.linkler:
             self.count = 0
+
             yield scrapy.Request(
                 url = link,
                 headers=self.user_agent
@@ -104,11 +111,11 @@ class HepsiburadaCrawlSpider(scrapy.Spider):
     def save_file(self,veri,dosyaAdi):
         with open(dosyaAdi+".json","a+", encoding='utf8') as file:
             file.write(json.dumps(veri,indent=2, ensure_ascii=False))
-
+    
     def parse_page(self,response):
         urun_link = response.meta.get("urun_link")
         urun_kategorisi = response.meta.get("urun_kategorisi")
-
+        
         title = response.xpath("//h1[@itemprop='name']/text()").extract_first().strip()
         price = response.xpath("//span[@class='price']/span[1]/text()").extract_first()
         images = response.xpath("//img[@itemprop='image']/@data-src").extract()
@@ -136,7 +143,42 @@ class HepsiburadaCrawlSpider(scrapy.Spider):
         all_features_items = dict()
         for th,td in all_features:
             all_features_items[th] = td
-        # 
+
+        # comments
+        comment_items = list()
+        comments = response.xpath("//*[@class='hermes-ReviewCard-module-34AJ_']")
+        
+        if comments is not None:
+            for comment in comments:
+                name = comment.xpath(".//strong[@data-testid='title']/text()").extract_first()
+                description = comment.xpath(".//span[@itemprop='description']/text()").extract_first()
+                date = comment.xpath(".//*[@class='hermes-ReviewCard-module-20gkv']/div/span/@content").extract_first()
+                city = comment.xpath(".//*[@class='hermes-ReviewCard-module-1-Wp3']/span[3]/text").extract_first()
+                items = {
+                    'date':date,
+                    'name':name,
+                    'city':city,
+                    'comment':description,
+                    'star':''
+                }
+                comment_items.append(items)
+
+            ######################################333
+            #fill_star_count = 0
+            #count =0
+            #rating_stars = response.xpath("//*[@class='hermes-RatingPointer-module-1OKF3']")
+            #for stars in rating_stars:
+            #    for star in stars.xpath(".//svg/path/@fill").extract():
+            #        if star == "#f28b00":
+            #            fill_star_count +=1
+            #        count +=1
+            #    if comment_items[count].values() == "star":
+            #        comment_items[count].keys() = fill_star_count
+            #
+            #    print(fill_star_count)
+            #    fill_star_count = 0
+            #        
+            #########################################
         items = dict()
         items['category'] = urun_kategorisi
         items['title'] = title
@@ -149,11 +191,19 @@ class HepsiburadaCrawlSpider(scrapy.Spider):
         items['seller_name'] = seller_name
         items['seller_rating'] = seller_rating
         items['all_features_items'] = all_features_items
-        #yield items
-        self.save_file(items,"tüm_ürünler")
-crw = CrawlerProcess()
-crw.crawl(HepsiburadaCrawlSpider)
-#crw.crawl(Kategoriler)
-crw.start()
+        if comment_items == {}:
+            items['comments'] = None
+        else:
+            items['comments'] = comment_items
+        yield items
+        #print(items['comments'])
+        #self.save_file(items,"tüm_ürünler")
+
+if __name__=='__main__':
+    ### Run scraper 
+    crw = CrawlerProcess()
+    crw.crawl(HepsiburadaCrawlSpider)
+    #crw.crawl(Kategoriler)
+    crw.start()
 
 
