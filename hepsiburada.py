@@ -1,3 +1,6 @@
+#
+# GÜNCEL 2024
+#
 # CrawlerProcess scrapy projesini tek dosyada çalıştırabilmemize olanak sağlıyor.
 from scrapy.crawler import CrawlerProcess
 import scrapy
